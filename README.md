@@ -9,7 +9,7 @@ subject { get :show }
 specify { subject and assigns[:blah].should be_present }
 specify { subject and assigns[:blah].should == "something" }
 specify { subject and assigns[:blah].should =~ /thi/ }
-specify { subject and assigns[:blah].should is_a String }
+specify { subject and assigns[:blah].should be_a String }
 ```
 
 Instead:
@@ -19,7 +19,7 @@ subject { get :show }
 it { should assign :blah }
 it { should assign :blah => "something" }
 it { should assign :blah => /thi/ }
-it { should assign :blah => is_a_(String) }
+it { should assign :blah => is_a(String) }
 ```
 
 It's more like a subject modifier, a la `its`, but inline and allowing nicely described specs:
