@@ -121,10 +121,16 @@ module RSpec::Rails::Matchers::Assign
   # or, more interestingly:
   #
   #      it { should assign(:blah) == "something" }
-  #      it { should assign(:blah => be_a(String)) }
+  #      it { should assign(:blah => is_a(String)) }
   #      it { should assign(:blah => satisfy { |value| Thing.exists? :blah => value }) }
   #
   def assign *args, &block
     AssignMatcher.new self, *args, &block
+  end
+
+  def method_missing(method, *args, &block)
+    # Allow infinitive forms of `be_<predicate>` matchers.
+    return ::RSpec::Matchers::BePredicate.new(method.to_s.sub("is", "be"), *args, &block) if method.to_s =~ /\Ais_(.*)\Z/
+    super
   end
 end
