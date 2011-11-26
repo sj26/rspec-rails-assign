@@ -6,16 +6,13 @@ describe "assign" do
   subject { stub(:assigns => {:blah => "thing"}) }
 
   it { should_not assign :foo }
-  it { should assign(:blah) }
-  it { should assign(:blah).to == "thing" }
-  it { should_not assign(:blah).to == "what" }
-  it { should assign(:blah).to =~ /\Athi/ }
-  it { should assign(:blah, "thing") }
-  it { should_not assign(:blah, "what") }
-  it { should assign(:blah).to "thing" }
-  it { should_not assign(:blah).to "what" }
-  it { should assign(:blah).to be_present  }
-  it { should_not assign(:blah).to be_blank }
-  it { should assign(:blah).to include "hin"  }
-  it { should_not assign(:blah).to include "what "  }
+  it { should assign :blah }
+  it { should assign :blah => "thing" }
+  it { should_not assign :blah => "what" }
+  it { should assign :blah => /\Athi/ }
+  it { should_not assign :blah => /what/ }
+  it { should assign :blah => be_present  }
+  it { should_not assign :blah => be_blank }
+  it { should assign :blah => include("hin")  }
+  it { should_not assign :blah => include("what") }
 end

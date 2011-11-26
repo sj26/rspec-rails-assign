@@ -9,14 +9,29 @@ module RSpec::Rails::Matchers::Assign
 
     def initialize scope, name, expected=nil
       @scope = scope
-      @name = name
       @actual = nil
-      @operator = :==
+
+      if name.is_a? Hash
+        raise ArgumentError, "must test at least one assignment" unless name.size
+        raise ArgumentError, "can only test one assign at a time" if name.size > 1
+
+        @name, expected = name.first
+      else
+        @name = name
+      end
+
       @expected = [expected]
+      @operator = nil
     end
 
     def description
-      "assign @#{@name}#{" to #{@operator} #{@expected.first.inspect}" if @expected.first}"
+      if @expected.first.nil?
+        "assign @#{@name}"
+      elsif @expected.first.respond_to? :matches?
+        "assign @#{@name} to #{@expected.first.description}"
+      else
+        "assign @#{@name} #{@operator} #{@expected.first.inspect}"
+      end
     end
 
     def failure_message_for_should
@@ -24,6 +39,8 @@ module RSpec::Rails::Matchers::Assign
         "expected to assign @#{@name}"
       elsif ['==','===', '=~'].include?(operator)
         "expected: #{expected.first.inspect}\n     got: #{actual.inspect} (using #{operator})"
+      elsif @expected.first.respond_to? :matches?
+        "expected: #{actual.inspect} to #{@expected.first.description}"
       else
         "expected: #{operator} #{expected.first.inspect}\n     got: #{operator.gsub(/./, ' ')} #{actual.inspect}"
       end
@@ -32,27 +49,15 @@ module RSpec::Rails::Matchers::Assign
     def failure_message_for_should_not
       if @expected.first.nil?
         "expected not to assign @#{@name}"
+      elsif @expected.first.respond_to? :matches?
+        "expected: #{actual.inspect} to not #{@expected.first.description}"
       else
         "expected not: #{operator} #{expected.first.inspect}\n         got: #{operator.gsub(/./, ' ')} #{actual.inspect}"
       end
     end
 
     def diffable?
-      true
-    end
-
-    def to matcher_or_expected=nil
-      # Operator matchers, we need to get tricky!
-      if matcher_or_expected.nil?
-        AssignOperator.new self
-      # Meta-matching
-      elsif matcher_or_expected.respond_to? :matches?
-        AssignMetaMatcher.new @scope, @name, matcher_or_expected
-      # Just a value, set expected
-      else
-        @expected = [matcher_or_expected]
-        self
-      end
+      not (@expected.first.is_a?(Regexp) or @expected.first.respond_to? :matches?)
     end
 
     def matches? actual
@@ -60,23 +65,25 @@ module RSpec::Rails::Matchers::Assign
 
       if @expected.first.nil?
         @actual.present?
-      else
+      elsif @operator
         @actual.send @operator, @expected.first
+      elsif @expected.first.is_a? Regexp
+        @operator = "=~"
+        @actual =~ @expected.first
+      elsif @expected.first.respond_to? :matches?
+        @expected.first.matches? @actual
+      else
+        @operator = "=="
+        @actual == @expected.first
       end
-    end
-  end
-
-  # +nodoc+
-  class AssignOperator
-    def initialize matcher
-      @matcher = matcher
     end
 
     ['==', '===', '=~', '>', '>=', '<', '<='].each do |operator|
       define_method operator do |expected|
-        @matcher.operator = operator
-        @matcher.expected = [expected]
-        @matcher
+        raise ArgumentError, "can't use expected value and an opertator" if @expected.present?
+        @operator = operator
+        @expected = [expected]
+        self
       end
     end
   end
@@ -109,13 +116,13 @@ module RSpec::Rails::Matchers::Assign
   #
   #      subject { get :show }
   #      it { should assign(:blah) }
-  #      it { should assign(:blah).to("something") }
+  #      it { should assign(:blah =>"something") }
   #
   # or, more interestingly:
   #
-  #      it { should assign(:blah).to == "something" }
-  #      it { should assign(:blah).to be_a String }
-  #      it { should assign(:blah).to satisfy { |value| Thing.exists? :blah => value } }
+  #      it { should assign(:blah) == "something" }
+  #      it { should assign(:blah => be_a(String)) }
+  #      it { should assign(:blah => satisfy { |value| Thing.exists? :blah => value }) }
   #
   def assign *args, &block
     AssignMatcher.new self, *args, &block
