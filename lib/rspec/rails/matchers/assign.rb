@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 module RSpec::Rails::Matchers::Assign
   private
 
@@ -60,8 +58,8 @@ module RSpec::Rails::Matchers::Assign
       not (@expected.first.is_a?(Regexp) or @expected.first.respond_to? :matches?)
     end
 
-    def matches? actual
-      @actual = actual.assigns[@name]
+    def matches?(_)
+      @actual = @scope.assigns[@name]
 
       if @expected.first.nil?
         @actual.present?
@@ -96,8 +94,8 @@ module RSpec::Rails::Matchers::Assign
       @matcher = matcher
     end
 
-    def matches? actual
-      @actual = actual.assigns[@name]
+    def matches?(_)
+      @actual = @scope.assigns[@name]
       @matcher.matches? @actual
     end
 
